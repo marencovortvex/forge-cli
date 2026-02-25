@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vortvex.com/forge/spec.schema.json",
+  "title": "FORGE SpecLang v0",
+  "type": "object",
+  "required": ["app", "auth", "roles", "domain", "flows", "invariants", "security", "deploy"],
+  "additionalProperties": false,
+  "properties": {
+    "app": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "auth": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"type": "string", "enum": ["email_password"]}
+      }
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "domain": {
+      "type": "object",
+      "required": ["entities"],
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/entity"
+          }
+        }
+      }
+    },
+    "flows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/flow"}
+    },
+    "invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/invariant"}
+    },
+    "security": {
+      "type": "object",
+      "required": ["policies"],
+      "additionalProperties": false,
+      "properties": {
+        "policies": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/policy"}
+        }
+      }
+    },
+    "integrations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/integration"}
+    },
+    "deploy": {
+      "type": "object",
+      "required": ["cloud", "runtime"],
+      "additionalProperties": false,
+      "properties": {
+        "cloud": {"type": "string", "enum": ["gcp"]},
+        "runtime": {"type": "string", "enum": ["cloud_run"]}
+      }
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "required": ["fields"],
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/field"}
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"type": "string", "enum": ["uuid", "string", "email", "enum", "int", "boolean", "timestamp"]},
+        "primary": {"type": "boolean"},
+        "unique": {"type": "boolean"},
+        "pii": {"type": "boolean"},
+        "values": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "enum"}}},
+          "then": {"required": ["values"]}
+        }
+      ]
+    },
+    "flow": {
+      "type": "object",
+      "required": ["name", "actor", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "actor": {"type": "string", "minLength": 1},
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/flowStep"}
+        }
+      }
+    },
+    "flowStep": {
+      "type": "object",
+      "required": ["action", "entity"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {"type": "string", "enum": ["create"]},
+        "entity": {"type": "string", "minLength": 1}
+      }
+    },
+    "invariant": {
+      "type": "object",
+      "required": ["name", "kind", "rule"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "enum": ["database"]},
+        "rule": {"type": "string", "minLength": 1}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["name", "kind", "rule"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "enum": ["logging"]},
+        "rule": {"type": "string", "minLength": 1}
+      }
+    },
+    "integration": {
+      "type": "object",
+      "required": ["name", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "enum": ["mock"]}
+      }
+    }
+  }
+}

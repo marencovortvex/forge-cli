@@ -1,0 +1,36 @@
+{
+  "name": "@vortvex/forge-cli",
+  "version": "0.1.1",
+  "description": "FORGE — AI-native system governance layer (MVP CLI)",
+  "license": "MIT",
+  "bin": {
+    "forge": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "schema",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --watch --enable-source-maps dist/cli.js",
+    "lint": "echo \"(todo)\"",
+    "test": "node --test",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

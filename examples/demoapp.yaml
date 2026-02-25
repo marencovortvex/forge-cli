@@ -1,0 +1,44 @@
+app:
+  name: DemoApp
+  version: 0.1.0
+
+auth:
+  mode: email_password
+
+roles:
+  - admin
+  - user
+
+domain:
+  entities:
+    User:
+      fields:
+        id: { type: uuid, primary: true }
+        email: { type: email, unique: true, pii: true }
+        role: { type: enum, values: [admin, user] }
+
+flows:
+  - name: create_user
+    actor: admin
+    steps:
+      - action: create
+        entity: User
+
+invariants:
+  - name: unique_user_email
+    kind: database
+    rule: "User.email is unique"
+
+security:
+  policies:
+    - name: no_pii_in_logs
+      kind: logging
+      rule: "Fields marked pii:true must be redacted in logs"
+
+integrations:
+  - name: email
+    kind: mock
+
+deploy:
+  cloud: gcp
+  runtime: cloud_run
