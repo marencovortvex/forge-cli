@@ -19,7 +19,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "node --watch --enable-source-maps dist/cli.js",
     "lint": "echo \"(todo)\"",
-    "test": "node --test dist/tests/**/*.test.js",
+    "test": "node --test dist/tests/*.test.js",
     "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
