@@ -232,6 +232,17 @@ export async function compileFromSpecFile(
     }
   ] as const;
 
+  // Minimal enforcement: strict mode converts high/critical advisories into deploy blockers.
+  const deployBlockers: string[] = [];
+  if (enforcementMode === 'strict') {
+    for (const adv of (advisories as unknown as any[])) {
+      const sev = String((adv as any)?.severity || '').toLowerCase();
+      if (sev === 'high' || sev === 'critical') {
+        deployBlockers.push(`Strict mode: security advisory blocks deploy: ${(adv as any)?.package || 'pkg'} (${(adv as any)?.id || 'id'}) severity=${sev}`);
+      }
+    }
+  }
+
   const policyReport = makePolicyReport({
     specHash,
     schemaVersion,
@@ -242,7 +253,7 @@ export async function compileFromSpecFile(
     hasNoPiiInLogsPolicy,
     advisories: advisories as any,
     warnings: vr.warnings,
-    deployBlockers: []
+    deployBlockers
   });
 
   // Override timestamps for determinism when FORGE_BUILD_TIME is set.

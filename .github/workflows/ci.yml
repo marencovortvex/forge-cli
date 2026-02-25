@@ -37,3 +37,4 @@ jobs:
           node dist/cli.js verify ../examples/invalid-role.yaml -o ../output && exit 1 || true
           node dist/cli.js verify ../examples/missing-policy.yaml -o ../output && exit 1 || true
           node dist/cli.js verify ../examples/invalid-flow.yaml -o ../output && exit 1 || true
+          node dist/cli.js verify ../examples/strict-blocker.yaml -o ../output && exit 1 || true
