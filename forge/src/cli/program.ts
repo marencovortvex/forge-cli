@@ -21,7 +21,7 @@ export function buildProgram() {
   program
     .name('forge')
     .description('FORGE — AI-native system compiler (MVP CLI)')
-    .version('0.1.1');
+    .version('0.1.2');
 
   program
     .command('validate')

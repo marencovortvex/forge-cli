@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { backendFiles, webFiles, outputDirForApp } from './templates.js';
+import { outputDirForApp } from './templates.js';
+import type { CompilerTarget } from './targets/target.js';
 
 async function ensureDirReady(dir: string, opts: { clean: boolean }) {
   try {
@@ -31,23 +32,20 @@ export type GenerateResult = {
 export async function generateTargets(input: {
   outBaseDir: string;
   appName: string;
-  specPath: string;
-  specHash: string;
-  schemaVersion: string;
+  spec: any;
+  targets: CompilerTarget[];
+  ctx: { specHash: string; schemaVersion: string; buildTime: string };
   clean: boolean;
 }): Promise<{ outDir: string }> {
   const outDir = outputDirForApp(input.outBaseDir, input.appName);
   await ensureDirReady(outDir, { clean: input.clean });
 
-  const backendDir = path.join(outDir, 'backend');
-  const webDir = path.join(outDir, 'web');
-
-  for (const [relPath, content] of Object.entries(backendFiles(input.appName, { specHash: input.specHash, schemaVersion: input.schemaVersion }))) {
-    await writeFile(path.join(backendDir, relPath), content);
-  }
-
-  for (const [relPath, content] of Object.entries(webFiles(input.appName, { specHash: input.specHash, schemaVersion: input.schemaVersion }))) {
-    await writeFile(path.join(webDir, relPath), content);
+  for (const t of input.targets) {
+    const root = path.join(outDir, t.rootDirName());
+    const artifacts = await t.generate({ spec: input.spec, appName: input.appName, ctx: input.ctx });
+    for (const a of artifacts) {
+      await writeFile(path.join(root, a.relPath), a.content);
+    }
   }
 
   return { outDir };
