@@ -5,12 +5,10 @@ import { sha256Hex } from '../spec/hash.js';
 import { validateAgainstSchema } from '../spec/schema.js';
 
 import type { AdvisoryProvider } from '../policy/advisories/provider.js';
-import { SeededAdvisoryProvider } from '../policy/advisories/seeded.js';
 import type { PolicyRuleset } from '../policy/ruleset.js';
-import { DefaultRuleset } from '../policy/defaultRuleset.js';
 
 import { generateTargets, writeForgeGeneratedManifest } from '../compiler/generate.js';
-import { defaultTargets } from '../compiler/targets/index.js';
+import { defaultAdvisoryProviders, defaultRuleset, defaultTargets, advisoryProviderRegistry, targetRegistry } from '../registry/defaults.js';
 import { makePolicyReport } from './policyReport.js';
 import { writeBuildProvenance, writePolicyReport } from './artifacts.js';
 
@@ -61,11 +59,38 @@ export async function validateSpecPipeline(
     return { ok: false, errors: schema.errors, warnings };
   }
 
-  const advisoryProviders = deps?.advisoryProviders || [new SeededAdvisoryProvider()];
-  const ruleset = deps?.ruleset || new DefaultRuleset();
+  // Selection validation (config-driven) — defaults are implicit.
+  const requestedProviderIds = Array.isArray(spec?.governance?.advisory_providers)
+    ? (spec.governance.advisory_providers as any[]).map((x) => String(x))
+    : ['seeded'];
+
+  const requestedTargetIds = Array.isArray(spec?.governance?.targets)
+    ? (spec.governance.targets as any[]).map((x) => String(x))
+    : ['backend-nestjs', 'web-nextjs'];
+
+  const providerMap = advisoryProviderRegistry();
+  const targetMap = targetRegistry();
+
+  for (const id of requestedProviderIds) {
+    if (!providerMap.has(id)) {
+      return { ok: false, errors: [`unknown provider: ${id}`], warnings: [] };
+    }
+  }
+  for (const id of requestedTargetIds) {
+    if (!targetMap.has(id)) {
+      return { ok: false, errors: [`unknown target: ${id}`], warnings: [] };
+    }
+  }
+
+  const advisoryProviders = deps?.advisoryProviders || defaultAdvisoryProviders();
+  const ruleset = deps?.ruleset || defaultRuleset();
 
   const advisories = await runAdvisoryProviders(spec, advisoryProviders);
-  const pe = ruleset.evaluate({ spec, governance: { enforcement_mode: String(spec?.governance?.enforcement_mode || 'standard') as any }, advisories });
+  const pe = ruleset.evaluate({
+    spec,
+    governance: { enforcement_mode: String(spec?.governance?.enforcement_mode || 'standard') as any },
+    advisories
+  });
 
   warnings.push(...pe.warnings);
   errors.push(...pe.errors);
@@ -100,8 +125,38 @@ export async function compilePipeline(input: {
   const buildTime = process.env.FORGE_BUILD_TIME || new Date().toISOString();
 
   // 3) advisory providers + policy ruleset
-  const advisoryProviders = input.advisoryProviders || [new SeededAdvisoryProvider()];
-  const ruleset = input.ruleset || new DefaultRuleset();
+  // 3a) select providers/targets based on spec (or defaults)
+  const requestedProviderIds = Array.isArray(spec?.governance?.advisory_providers)
+    ? (spec.governance.advisory_providers as any[]).map((x) => String(x))
+    : ['seeded'];
+
+  const requestedTargetIds = Array.isArray(spec?.governance?.targets)
+    ? (spec.governance.targets as any[]).map((x) => String(x))
+    : ['backend-nestjs', 'web-nextjs'];
+
+  const providerMap = advisoryProviderRegistry();
+  const targetMap = targetRegistry();
+
+  const selectedProviders: AdvisoryProvider[] = [];
+  for (const id of requestedProviderIds) {
+    const p = providerMap.get(id);
+    if (!p) {
+      return { ok: false, errors: [`unknown provider: ${id}`], warnings: [] };
+    }
+    selectedProviders.push(p);
+  }
+
+  const selectedTargets = [] as any[];
+  for (const id of requestedTargetIds) {
+    const t = targetMap.get(id);
+    if (!t) {
+      return { ok: false, errors: [`unknown target: ${id}`], warnings: [] };
+    }
+    selectedTargets.push(t);
+  }
+
+  const advisoryProviders = input.advisoryProviders || selectedProviders || defaultAdvisoryProviders();
+  const ruleset = input.ruleset || defaultRuleset();
   const advisories = await runAdvisoryProviders(spec, advisoryProviders);
 
   const pe = ruleset.evaluate({
@@ -115,7 +170,7 @@ export async function compilePipeline(input: {
   }
 
   // 4) generate targets (via target plugins)
-  const targets = input.targets || defaultTargets();
+  const targets = input.targets || selectedTargets || defaultTargets();
   const { outDir } = await generateTargets({
     outBaseDir: input.outBaseDir,
     appName,
@@ -163,7 +218,7 @@ export async function compilePipeline(input: {
 
   const policyReportPath = await writePolicyReport(outDir, report);
   const provenancePath = await writeBuildProvenance(outDir, {
-    forgeVersion: '0.1.2',
+    forgeVersion: '0.1.3',
     specPath: input.specPath,
     specHash,
     schemaVersion,

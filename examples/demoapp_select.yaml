@@ -1,0 +1,44 @@
+spec_version: v0
+
+governance:
+  enforcement_mode: standard
+  advisory_providers: ["seeded"]
+  targets: ["backend-nestjs", "web-nextjs"]
+
+app:
+  name: demoapp
+  version: 0.0.1
+
+auth:
+  mode: email_password
+
+roles: [admin, user]
+
+domain:
+  entities:
+    User:
+      fields:
+        id: { type: uuid, primary: true }
+        email: { type: email, unique: true, pii: true }
+
+flows:
+  - name: create_user
+    actor: admin
+    steps:
+      - action: create
+        entity: User
+
+invariants:
+  - name: user_email_unique
+    kind: database
+    rule: "User.email must be unique"
+
+security:
+  policies:
+    - name: no_pii_in_logs
+      kind: logging
+      rule: "PII fields must not appear in logs"
+
+deploy:
+  cloud: gcp
+  runtime: cloud_run
