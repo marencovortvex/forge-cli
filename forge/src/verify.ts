@@ -1,22 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import YAML from 'yaml';
-import { validateSpecFile, type ValidationResult } from './validate.js';
-import { compileFromSpecFile } from './compile.js';
+
+import { validateSpecPipeline, compilePipeline, type ValidationResult } from './governance/pipeline.js';
 
 export type VerifyResult = ValidationResult & {
   outputDir?: string;
   policyReportPath?: string;
   provenancePath?: string;
 };
-
-function slugify(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
 
 async function fileExists(p: string) {
   try {
@@ -28,18 +19,13 @@ async function fileExists(p: string) {
 }
 
 export async function verifyFromSpecFile(specPath: string, outBaseDir: string): Promise<VerifyResult> {
-  const vr = await validateSpecFile(specPath);
+  const vr = await validateSpecPipeline(specPath);
   if (!vr.ok) return vr;
 
-  // Compile idempotently.
-  const cr = await compileFromSpecFile(specPath, outBaseDir, { clean: true });
+  const cr = await compilePipeline({ specPath, outBaseDir, clean: true });
   if (!cr.ok) return cr;
 
-  const raw = await fs.readFile(specPath, 'utf8');
-  const spec: any = YAML.parse(raw);
-  const appName = String(spec?.app?.name || 'App');
-  const outDir = path.resolve(process.cwd(), outBaseDir, slugify(appName));
-
+  const outDir = cr.outputDir!;
   const policyReportPath = path.join(outDir, 'POLICY_REPORT.json');
   const provenancePath = path.join(outDir, 'BUILD_PROVENANCE.json');
 
@@ -47,7 +33,6 @@ export async function verifyFromSpecFile(specPath: string, outBaseDir: string): 
   if (!(await fileExists(policyReportPath))) errors.push(`Missing governance artifact: ${policyReportPath}`);
   if (!(await fileExists(provenancePath))) errors.push(`Missing governance artifact: ${provenancePath}`);
 
-  // Governance enforcement checks
   if (errors.length === 0) {
     try {
       const reportRaw = await fs.readFile(policyReportPath, 'utf8');
@@ -69,7 +54,7 @@ export async function verifyFromSpecFile(specPath: string, outBaseDir: string): 
   return {
     ok: errors.length === 0,
     errors,
-    warnings: vr.warnings,
+    warnings: cr.warnings,
     outputDir: outDir,
     policyReportPath,
     provenancePath
