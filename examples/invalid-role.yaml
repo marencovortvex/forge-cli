@@ -1,14 +1,13 @@
 spec_version: v0
 
 app:
-  name: DemoApp
+  name: InvalidRole
   version: 0.1.0
 
 auth:
   mode: email_password
 
 roles:
-  - admin
   - user
 
 domain:
@@ -17,11 +16,11 @@ domain:
       fields:
         id: { type: uuid, primary: true }
         email: { type: email, unique: true, pii: true }
-        role: { type: enum, values: [admin, user] }
+        role: { type: enum, values: [user] }
 
 flows:
   - name: create_user
-    actor: admin
+    actor: admin  # invalid: not in roles
     steps:
       - action: create
         entity: User
@@ -36,10 +35,6 @@ security:
     - name: no_pii_in_logs
       kind: logging
       rule: "Fields marked pii:true must be redacted in logs"
-
-integrations:
-  - name: email
-    kind: mock
 
 deploy:
   cloud: gcp

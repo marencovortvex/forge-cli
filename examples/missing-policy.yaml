@@ -1,7 +1,7 @@
 spec_version: v0
 
 app:
-  name: DemoApp
+  name: MissingPolicy
   version: 0.1.0
 
 auth:
@@ -33,13 +33,9 @@ invariants:
 
 security:
   policies:
-    - name: no_pii_in_logs
+    - name: some_other_policy
       kind: logging
-      rule: "Fields marked pii:true must be redacted in logs"
-
-integrations:
-  - name: email
-    kind: mock
+      rule: "something else"
 
 deploy:
   cloud: gcp

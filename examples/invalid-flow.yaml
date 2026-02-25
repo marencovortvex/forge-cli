@@ -1,7 +1,7 @@
 spec_version: v0
 
 app:
-  name: DemoApp
+  name: InvalidFlow
   version: 0.1.0
 
 auth:
@@ -24,7 +24,7 @@ flows:
     actor: admin
     steps:
       - action: create
-        entity: User
+        entity: MissingEntity  # invalid: entity does not exist
 
 invariants:
   - name: unique_user_email
@@ -36,10 +36,6 @@ security:
     - name: no_pii_in_logs
       kind: logging
       rule: "Fields marked pii:true must be redacted in logs"
-
-integrations:
-  - name: email
-    kind: mock
 
 deploy:
   cloud: gcp

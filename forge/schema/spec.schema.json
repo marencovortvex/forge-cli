@@ -3,9 +3,17 @@
   "$id": "https://vortvex.com/forge/spec.schema.json",
   "title": "FORGE SpecLang v0",
   "type": "object",
-  "required": ["app", "auth", "roles", "domain", "flows", "invariants", "security", "deploy"],
+  "required": ["spec_version", "app", "auth", "roles", "domain", "flows", "invariants", "security", "deploy"],
   "additionalProperties": false,
   "properties": {
+    "spec_version": {"type": "string", "enum": ["v0"]},
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enforcement_mode": {"type": "string", "enum": ["standard", "strict", "audit", "permissive"]}
+      }
+    },
     "app": {
       "type": "object",
       "required": ["name", "version"],
